@@ -1,22 +1,22 @@
-// sw.js - Service Worker para MILA'S Studio
+// sw.js - Service Worker para Thaly Nails Studio
 
-const CACHE_NAME = 'milas-studio-v1';
+const CACHE_NAME = 'thaly-nails-v1';
 const urlsToCache = [
-  '/milas-studio/',
-  '/milas-studio/index.html',
-  '/milas-studio/admin.html',
-  '/milas-studio/admin-login.html',
-  '/milas-studio/setup-wizard.html',
-  '/milas-studio/editar-negocio.html',
-  '/milas-studio/manifest.json',
-  '/milas-studio/icons/icon-72x72.png',
-  '/milas-studio/icons/icon-96x96.png',
-  '/milas-studio/icons/icon-128x128.png',
-  '/milas-studio/icons/icon-144x144.png',
-  '/milas-studio/icons/icon-152x152.png',
-  '/milas-studio/icons/icon-192x192.png',
-  '/milas-studio/icons/icon-384x384.png',
-  '/milas-studio/icons/icon-512x512.png'
+  '/thaly-nails-studio/',
+  '/thaly-nails-studio/index.html',
+  '/thaly-nails-studio/admin.html',
+  '/thaly-nails-studio/admin-login.html',
+  '/thaly-nails-studio/setup-wizard.html',
+  '/thaly-nails-studio/editar-negocio.html',
+  '/thaly-nails-studio/manifest.json',
+  '/thaly-nails-studio/icons/icon-72x72.png',
+  '/thaly-nails-studio/icons/icon-96x96.png',
+  '/thaly-nails-studio/icons/icon-128x128.png',
+  '/thaly-nails-studio/icons/icon-144x144.png',
+  '/thaly-nails-studio/icons/icon-152x152.png',
+  '/thaly-nails-studio/icons/icon-192x192.png',
+  '/thaly-nails-studio/icons/icon-384x384.png',
+  '/thaly-nails-studio/icons/icon-512x512.png'
 ];
 
 // ============================================
@@ -108,7 +108,7 @@ self.addEventListener('fetch', event => {
           }
           // Si no hay cache y es imagen, devolver icon por defecto
           if (event.request.url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/)) {
-            return caches.match('/milas-studio/icons/icon-192x192.png');
+            return caches.match('/thaly-nails-studio/icons/icon-192x192.png');
           }
           return new Response('Error de red', { status: 408 });
         });
@@ -138,6 +138,6 @@ self.addEventListener('message', event => {
   }
 });
 
-console.log('✅ Service Worker configurado para MILA\'S Studio');
+console.log('✅ Service Worker configurado para Thaly Nails Studio');
 console.log('📦 Cache:', CACHE_NAME);
 console.log('📄 Archivos a cachear:', urlsToCache.length);
