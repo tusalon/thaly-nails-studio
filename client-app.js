@@ -1,4 +1,5 @@
 // client-app.js - Aplicación de clientes con flujo completo y PWA
+// MEJORA: Redirección automática según rol al iniciar
 
 console.log('🚀 CLIENT-APP.JS VERSIÓN:', '2024-03-01');
 
@@ -28,36 +29,39 @@ function ClientApp() {
     const [bookingConfirmed, setBookingConfirmed] = React.useState(null);
     const [userRol, setUserRol] = React.useState('cliente');
     const [history, setHistory] = React.useState(['auth']);
+    const [horariosPorDia, setHorariosPorDia] = React.useState({});
 
     // ============================================
-    // DETECTAR SESIÓN AL INICIAR
+    // DETECTAR SESIÓN AL INICIAR Y REDIRIGIR SEGÚN ROL
     // ============================================
     React.useEffect(() => {
         const adminAuth = localStorage.getItem('adminAuth') === 'true';
         const profesionalAuth = localStorage.getItem('profesionalAuth');
+        const clienteAuth = localStorage.getItem('clienteAuth');
         
         if (adminAuth) {
-            setUserRol('admin');
-        } else if (profesionalAuth) {
-            setUserRol('profesional');
-            try {
-                const profesional = JSON.parse(profesionalAuth);
-                setCliente({
-                    nombre: profesional.nombre,
-                    whatsapp: profesional.telefono
-                });
-            } catch (e) {}
+            console.log('👑 Usuario admin detectado, redirigiendo a admin.html');
+            window.location.href = 'admin.html';
+            return;
         }
         
-        const savedCliente = localStorage.getItem('clienteAuth');
-        if (savedCliente && !adminAuth && !profesionalAuth) {
+        if (profesionalAuth) {
+            console.log('👤 Usuario profesional detectado, redirigiendo a admin.html');
+            window.location.href = 'admin.html';
+            return;
+        }
+        
+        if (clienteAuth) {
             try {
-                const clienteData = JSON.parse(savedCliente);
+                const clienteData = JSON.parse(clienteAuth);
                 setCliente(clienteData);
                 setUserRol('cliente');
                 setStep('welcome');
                 setHistory(['auth', 'welcome']);
-            } catch (e) {}
+            } catch (e) {
+                console.error('Error al parsear clienteAuth', e);
+                localStorage.removeItem('clienteAuth');
+            }
         }
     }, []);
 
@@ -148,6 +152,25 @@ function ClientApp() {
         navigateTo('service');
     };
 
+    const handleServiceSelect = (service) => {
+        setSelectedService(service);
+        setSelectedProfesional(null);
+        setSelectedDate('');
+        setSelectedTime('');
+        setHorariosPorDia({});
+        setTimeout(() => {
+            document.getElementById('profesional-section')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }, 150);
+    };
+
+    const handleNoAvailability = React.useCallback(() => {
+        setSelectedDate('');
+        setSelectedTime('');
+    }, []);
+
     const handleLogout = () => {
         localStorage.removeItem('clienteAuth');
         setCliente(null);
@@ -158,6 +181,7 @@ function ClientApp() {
         setUserRol('cliente');
         setHistory(['auth']);
         setStep('auth');
+        window.location.href = 'index.html';
     };
 
     const resetBooking = () => {
@@ -223,17 +247,26 @@ function ClientApp() {
                         <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-20">
                             {/* SECCIÓN 1: SERVICIOS */}
                             <ServiceSelection 
-                                onSelect={setSelectedService} 
+                                onSelect={handleServiceSelect} 
                                 selectedService={selectedService}
                             />
                             
-                            {/* SECCIÓN 2: PROFESIONALES */}
+                            {/* SECCIÓN 2: PROFESIONALES - CON selectedService */}
                             {selectedService && (
                                 <div id="profesional-section">
-                                    <ProfesionalSelector 
-                                        onSelect={setSelectedProfesional} 
-                                        selectedProfesional={selectedProfesional}
-                                    />
+                                    {selectedService.esMultiple ? (
+                                        <MultiProfesionalSelector
+                                            onSelect={setSelectedProfesional}
+                                            selectedProfesional={selectedProfesional}
+                                            selectedService={selectedService}
+                                        />
+                                    ) : (
+                                        <ProfesionalSelector
+                                            onSelect={setSelectedProfesional}
+                                            selectedProfesional={selectedProfesional}
+                                            selectedService={selectedService}
+                                        />
+                                    )}
                                 </div>
                             )}
                             
@@ -243,7 +276,10 @@ function ClientApp() {
                                     <Calendar 
                                         onDateSelect={setSelectedDate} 
                                         selectedDate={selectedDate}
-                                        profesional={selectedProfesional}
+                                        profesional={selectedProfesional?.esMultiple ? selectedProfesional.asignaciones[0]?.profesional : selectedProfesional}
+                                        profesionalCompleto={selectedProfesional}
+                                        service={selectedService}
+                                        onHorariosCargados={setHorariosPorDia}
                                     />
                                 </div>
                             )}
@@ -251,13 +287,26 @@ function ClientApp() {
                             {/* SECCIÓN 4: HORARIOS */}
                             {selectedDate && (
                                 <div id="time-section">
-                                    <TimeSlots 
-                                        service={selectedService}
-                                        date={selectedDate}
-                                        profesional={selectedProfesional}
-                                        onTimeSelect={setSelectedTime}
-                                        selectedTime={selectedTime}
-                                    />
+                                    {selectedService.esMultiple ? (
+                                        <MultiTimeSlots
+                                            service={selectedService}
+                                            date={selectedDate}
+                                            profesional={selectedProfesional}
+                                            onTimeSelect={setSelectedTime}
+                                            selectedTime={selectedTime}
+                                            onNoAvailability={handleNoAvailability}
+                                        />
+                                    ) : (
+                                        <TimeSlots
+                                            service={selectedService}
+                                            date={selectedDate}
+                                            profesional={selectedProfesional}
+                                            cliente={cliente}
+                                            onTimeSelect={setSelectedTime}
+                                            selectedTime={selectedTime}
+                                            horariosPorDia={horariosPorDia}
+                                        />
+                                    )}
                                 </div>
                             )}
                             
@@ -279,9 +328,6 @@ function ClientApp() {
                             
                             {/* WhatsApp Button */}
                             <WhatsAppButton />
-                            
-                         
-                           
                         </div>
                     </div>
                 );
@@ -300,9 +346,6 @@ function ClientApp() {
                             booking={bookingConfirmed} 
                             onReset={resetBooking}
                         />
-                        
-                        {/* Botón de instalación PWA también en confirmación */}
-                        
                     </div>
                 );
             
